@@ -176,6 +176,9 @@ function monterAscendance(wrap, id) {
   const memeFiche = pedMemo.id === id;
   if (!memeFiche) pedMemo = { id, ouverts: new Set(), defilement: null };
   const noeuds = new Map();   // chemin -> élément
+  // carte sur laquelle on vient de cliquer « + » : elle doit rester au même endroit après l'ajout
+  let ancre = memeFiche ? pedMemo.ancre : null;
+  pedMemo.ancre = null;
   let total = 0, defile = memeFiche && !!pedMemo.defilement;
   const majInfo = () => {
     const reste = wrap.querySelectorAll(".pd-more, .pd-moins").length;
@@ -195,11 +198,16 @@ function monterAscendance(wrap, id) {
     a.className = `pn ${q.x}${self ? " self" : ""}`; a.href = "#" + q.i; a.dataset.id = q.i; a.dataset.gen = gen;
     a.title = gen ? "Voir ses informations et sa génération" : "Afficher les informations de cette personne";
     a.innerHTML = `<span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span>`;
-    const plus = document.createElement("button");
-    plus.className = "pd-plus"; plus.type = "button"; plus.textContent = "+";
-    plus.title = `Ajouter un enfant à ${nomTexte(q)}`; plus.setAttribute("aria-label", plus.title);
-    plus.dataset.edit = "ajout-enfant"; plus.dataset.id = q.i;
-    c.append(a, plus);
+    // « + » à gauche : ajouter un enfant (côté descendance) ; à droite : ajouter un parent (côté ascendance)
+    const plus = (classe, action, titre) => {
+      const b = document.createElement("button");
+      b.className = `pd-plus ${classe}`; b.type = "button"; b.textContent = "+";
+      b.title = titre; b.setAttribute("aria-label", titre);
+      b.dataset.edit = action; b.dataset.id = q.i;
+      return b;
+    };
+    c.append(plus("enfant", "ajout-enfant", `Ajouter un enfant à ${nomTexte(q)}`), a);
+    if (parentsIds(q.i).length < 2) c.append(plus("parent", "ajout-parent", `Ajouter un parent à ${nomTexte(q)}`));
     total++;
     return c;
   };
@@ -240,7 +248,7 @@ function monterAscendance(wrap, id) {
     b.replaceWith(bloc);
     pedMemo.ouverts.add(`${d.dataset.chemin}|${sens}`);
     majInfo();
-    centrer();          // des descendants ajoutés à gauche décalent la personne : on la garde en vue
+    recaler();          // une branche dépliée décale les cartes : on garde en place celle qui compte
   };
   pedObs = new IntersectionObserver(entrees => {
     for (const en of entrees) if (en.isIntersecting && total < MAX) etendre(en.target.parentElement, en.target.dataset.sens);
@@ -256,8 +264,17 @@ function monterAscendance(wrap, id) {
   majInfo();
   wrap.addEventListener("scroll", () => { pedMemo.defilement = [wrap.scrollLeft, wrap.scrollTop]; }, { passive: true });
   if (memeFiche && pedMemo.defilement) [wrap.scrollLeft, wrap.scrollTop] = pedMemo.defilement;
+  recaler();
   // sinon, la personne reste au milieu de la zone tant que l'utilisateur n'a pas fait défiler lui-même
-  for (const ev of ["wheel", "touchstart", "pointerdown"]) wrap.addEventListener(ev, () => { defile = true; }, { once: true, passive: true });
+  for (const ev of ["wheel", "touchstart", "pointerdown"]) wrap.addEventListener(ev, () => { defile = true; ancre = null; }, { once: true, passive: true });
+  function recaler() {
+    if (!ancre) return centrer();
+    const c = noeuds.get(ancre.chemin)?.querySelector(":scope > .pn-cel");
+    if (!c) return;
+    const r = c.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    wrap.scrollLeft += r.left - w.left - ancre.x;
+    wrap.scrollTop += r.top - w.top - ancre.y;
+  }
   function centrer() {
     if (defile) return;
     const s = wrap.querySelector(".pn.self");
@@ -266,7 +283,7 @@ function monterAscendance(wrap, id) {
     wrap.scrollTop += r.top - w.top - (wrap.clientHeight - r.height) / 2;
     wrap.scrollLeft += r.left - w.left - (wrap.clientWidth - r.width) / 2;
   }
-  for (const t of [120, 350, 800]) setTimeout(() => { centrer(); majInfo(); }, t);
+  for (const t of [120, 350, 800]) setTimeout(() => { recaler(); majInfo(); }, t);
 }
 
 /* ---------- panneau d'aperçu : informations d'une personne sans quitter la fiche courante ---------- */
@@ -520,6 +537,11 @@ detailEl.addEventListener("click", e => {
   const pn = t.closest(".pn");   // clic sur une personne de l'ascendance : aperçu à droite, sans quitter la fiche
   if (pn && !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) {
     e.preventDefault(); ouvrirPeek(pn.dataset.id, pn.dataset.gen !== undefined ? +pn.dataset.gen : undefined); return;
+  }
+  const plus = t.closest(".pd-plus");     // la fenêtre d'ajout est gérée par edition.js ; on note juste la position
+  if (plus) {
+    const w = plus.closest(".pedwrap").getBoundingClientRect(), r = plus.closest(".pn-cel").getBoundingClientRect();
+    pedMemo.ancre = { chemin: plus.closest(".pd, .pdd").dataset.chemin, x: r.left - w.left, y: r.top - w.top };
   }
   const deplier = t.closest(".pd-more, .pd-moins");
   if (deplier) { deplier.closest(".pedwrap")._etendre(deplier); return; }

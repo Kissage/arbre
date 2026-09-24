@@ -147,7 +147,9 @@ button, select, input { font: inherit; color: inherit; }
 .pd-more:hover, .pd-moins:hover { border-color: var(--accent); color: var(--accent); }
 /* cellule = carte + bouton « + » (ajouter un enfant) */
 .pn-cel { position: relative; flex: none; display: inline-flex; }
-.pd-plus { position: absolute; right: -9px; bottom: -9px; z-index: 2; width: 22px; height: 22px; padding: 0;
+.pd-plus.enfant { left: -9px; bottom: -9px; }     /* à gauche, côté descendants */
+.pd-plus.parent { right: -9px; top: -9px; }        /* à droite, côté ancêtres */
+.pd-plus { position: absolute; z-index: 2; width: 22px; height: 22px; padding: 0;
   border-radius: 50%; border: 1px solid var(--accent); background: var(--panel); color: var(--accent);
   font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer; box-shadow: var(--shadow); }
 .pd-plus:hover, .pd-plus:focus-visible { background: var(--accent); color: var(--panel); }
@@ -564,11 +566,11 @@ button, select, input { font: inherit; color: inherit; }
 </main>
 <div id="lb" role="dialog" aria-label="Photo"></div>
 
-<script src="js/config.js?v=7"></script>
-<script src="js/histoire.js?v=7"></script>
-<script src="js/modele.js?v=7"></script>
-<script src="js/depot.js?v=7"></script>
-<script src="js/interface.js?v=7"></script>
-<script src="js/edition.js?v=7"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/histoire.js?v=9"></script>
+<script src="js/modele.js?v=9"></script>
+<script src="js/depot.js?v=9"></script>
+<script src="js/interface.js?v=9"></script>
+<script src="js/edition.js?v=9"></script>
 </body>
 </html>
