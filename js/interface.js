@@ -1439,19 +1439,20 @@ function montrerConnexion(erreur = "", depot = "") {
   $("#chargement").hidden = true;
   $("#connexion").hidden = false;
   $("#cx-depot").value = depot || Depot.configuration()?.depot || CONFIG.depot || "";
+  $("#cx-auteur").value = Depot.configuration()?.auteur || "";
   $("#cx-erreur").hidden = !erreur;
   $("#cx-erreur").textContent = erreur;
   ($("#cx-depot").value ? $("#cx-jeton") : $("#cx-depot")).focus();
 }
-async function ouvrir(depot, jeton, memoriser = true) {
+async function ouvrir(depot, jeton, auteur = "", memoriser = true) {
   $("#connexion").hidden = true;
   $("#chargement").hidden = false;
   $("#chargement-texte").textContent = "Connexion à GitHub…";
   try {
-    const u = await Depot.connecter(depot, jeton, { memoriserConnexion: memoriser });
+    const u = await Depot.connecter(depot, jeton, { memoriserConnexion: memoriser, auteur });
     $("#chargement-texte").textContent = "Chargement de l’arbre…";
     await Depot.charger();
-    $("#menu-info").textContent = `Connecté : ${u.name || u.login} · ${Depot.depot}`;
+    $("#menu-info").textContent = `Connecté : ${auteur || u.name || u.login} · ${Depot.depot}`;
     $("#chargement").hidden = true;
   } catch (e) {
     montrerConnexion(e.message, depot);
@@ -1459,7 +1460,7 @@ async function ouvrir(depot, jeton, memoriser = true) {
 }
 $("#form-connexion").addEventListener("submit", e => {
   e.preventDefault();
-  ouvrir($("#cx-depot").value, $("#cx-jeton").value);
+  ouvrir($("#cx-depot").value, $("#cx-jeton").value, $("#cx-auteur").value);
 });
 
 // menu
@@ -1501,6 +1502,6 @@ setInterval(() => { if (document.visibilityState === "visible") Depot.verifierDi
 
 (function demarrer() {
   const c = Depot.configuration();
-  if (c) ouvrir(c.depot, c.jeton);
+  if (c) ouvrir(c.depot, c.jeton, c.auteur || "");
   else montrerConnexion();
 })();

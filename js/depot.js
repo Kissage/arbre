@@ -79,8 +79,9 @@ const Depot = (() => {
   function configuration() {
     try { return JSON.parse(localStorage.getItem(CLE_CONNEXION)) || null; } catch { return null; }
   }
-  async function connecter(depot, jeton, { memoriserConnexion = true } = {}) {
-    cfg = { depot: depot.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), jeton: jeton.trim() };
+  async function connecter(depot, jeton, { memoriserConnexion = true, auteur = "" } = {}) {
+    cfg = { depot: depot.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), jeton: jeton.trim(),
+      auteur: auteur.trim() };
     utilisateur = await api("/user");
     let infos;
     try { infos = await api(repo("")); } catch (e) {
@@ -162,7 +163,9 @@ const Depot = (() => {
       const blob = await api(repo("/git/blobs"), { methode: "POST", corps: { content: texte, encoding: "utf-8" } });
       entrees.push({ path: FICHIER, mode: "100644", type: "blob", sha: blob.sha });
       const arbre = await api(repo("/git/trees"), { methode: "POST", corps: { base_tree: base.arbre, tree: entrees } });
-      const commit = await api(repo("/git/commits"), { methode: "POST", corps: { message: op.message, tree: arbre.sha, parents: [base.commit] } });
+      // prénom saisi à la connexion : il signe le commit (utile quand deux personnes partagent le même jeton)
+      const auteur = cfg.auteur ? { author: { name: cfg.auteur, email: "arbre-familial@users.noreply.github.com" } } : {};
+      const commit = await api(repo("/git/commits"), { methode: "POST", corps: { message: op.message, tree: arbre.sha, parents: [base.commit], ...auteur } });
       try {
         await api(repo(`/git/refs/heads/${branche}`), { methode: "PATCH", corps: { sha: commit.sha, force: false } });
       } catch (e) {
