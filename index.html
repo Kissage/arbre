@@ -141,9 +141,31 @@ button, select, input { font: inherit; color: inherit; }
 /* ---------- ascendance ---------- */
 .pedwrap { position: relative; overflow: auto; max-height: min(72vh, 760px); padding: 4px 4px 8px;
   border: 1px solid var(--line); border-radius: 10px; background: var(--bg); overscroll-behavior: contain; }
-.pd-more { flex: none; margin-left: 6px; width: 22px; height: 22px; border-radius: 50%; padding: 0;
+.pd-more, .pd-moins { flex: none; margin-left: 6px; width: 22px; height: 22px; border-radius: 50%; padding: 0;
   border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
-.pd-more:hover { border-color: var(--accent); color: var(--accent); }
+.pd-moins { margin-left: 0; margin-right: 6px; }
+.pd-more:hover, .pd-moins:hover { border-color: var(--accent); color: var(--accent); }
+/* cellule = carte + bouton « + » (ajouter un enfant) */
+.pn-cel { position: relative; flex: none; display: inline-flex; }
+.pd-plus { position: absolute; right: -9px; bottom: -9px; z-index: 2; width: 22px; height: 22px; padding: 0;
+  border-radius: 50%; border: 1px solid var(--accent); background: var(--panel); color: var(--accent);
+  font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer; box-shadow: var(--shadow); }
+.pd-plus:hover, .pd-plus:focus-visible { background: var(--accent); color: var(--panel); }
+@media (hover: hover) {   /* souris : le « + » apparaît au survol ; écran tactile : toujours visible */
+  .pd-plus { opacity: 0; transition: opacity .12s; }
+  .pn-cel:hover .pd-plus, .pd-plus:focus-visible { opacity: 1; }
+}
+/* descendance : même dessin que l'ascendance, en miroir (vers la gauche) */
+.pdd { display: flex; flex-direction: row-reverse; align-items: center; }
+.pd-desc { position: relative; display: flex; flex-direction: column; justify-content: center; margin-right: 14px; }
+.pd-desc::before { content: ""; position: absolute; right: -14px; top: 50%; width: 14px; border-top: 1px solid var(--line); }
+.pd-desc > .pdd { position: relative; padding: 3px 14px 3px 0; }
+.pd-desc > .pdd::before { content: ""; position: absolute; right: 0; top: 50%; width: 14px; border-top: 1px solid var(--line); }
+.pd-desc > .pdd::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+.pd-desc > .pdd:first-child::after { top: 50%; }
+.pd-desc > .pdd:last-child::after { bottom: 50%; }
+.pd-desc > .pdd:only-child::after { display: none; }
+.ped-legende { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 0 4px 6px; }
 .pn.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .pedinfo { font-size: 12.5px; }
 
@@ -542,11 +564,11 @@ button, select, input { font: inherit; color: inherit; }
 </main>
 <div id="lb" role="dialog" aria-label="Photo"></div>
 
-<script src="js/config.js?v=6"></script>
-<script src="js/histoire.js?v=6"></script>
-<script src="js/modele.js?v=6"></script>
-<script src="js/depot.js?v=6"></script>
-<script src="js/interface.js?v=6"></script>
-<script src="js/edition.js?v=6"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/histoire.js?v=7"></script>
+<script src="js/modele.js?v=7"></script>
+<script src="js/depot.js?v=7"></script>
+<script src="js/interface.js?v=7"></script>
+<script src="js/edition.js?v=7"></script>
 </body>
 </html>

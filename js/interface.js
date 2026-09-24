@@ -156,58 +156,116 @@ function libGeneration(g, sexe) {
   return noms[g] || null;
 }
 
-// Arbre d'ascendance chargé progressivement : seules les branches qui entrent dans la zone visible (défilement
-// horizontal ou vertical) sont dépliées ; le bouton › déplie une branche à la main.
+function libDescendance(g, sexe) {     // g = 1 enfant, 2 petit-enfant…
+  const f = sexe === "F";
+  const noms = ["", f ? "fille" : "fils", f ? "petite-fille" : "petit-fils", f ? "arrière-petite-fille" : "arrière-petit-fils",
+    f ? "arrière-arrière-petite-fille" : "arrière-arrière-petit-fils"];
+  return noms[g] || null;
+}
+
+// Arbre d'ascendance (vers la droite) et de descendance (vers la gauche), chargé progressivement : seules les
+// branches qui entrent dans la zone visible sont dépliées ; les boutons › et ‹ déplient une branche à la main.
+// Chaque carte a un bouton « + » pour ajouter un enfant. Après une modification, l'arbre se reconstruit avec les
+// mêmes branches dépliées et à la même position.
 let pedObs = null;
+let pedMemo = { id: null, ouverts: new Set(), defilement: null };
 function monterAscendance(wrap, id) {
   pedObs?.disconnect();
   const MAX = 2500;   // garde-fou : au-delà, le dépliage devient manuel
   const info = wrap.closest(".card").querySelector(".pedinfo");
-  let total = 0, defile = false;
+  const memeFiche = pedMemo.id === id;
+  if (!memeFiche) pedMemo = { id, ouverts: new Set(), defilement: null };
+  const noeuds = new Map();   // chemin -> élément
+  let total = 0, defile = memeFiche && !!pedMemo.defilement;
   const majInfo = () => {
-    const reste = wrap.querySelectorAll(".pd-more").length;
+    const reste = wrap.querySelectorAll(".pd-more, .pd-moins").length;
     info.textContent = `${total.toLocaleString("fr")} personne${total > 1 ? "s" : ""} chargée${total > 1 ? "s" : ""}` +
-      (reste ? (total >= MAX ? " · cliquez sur › pour déplier" : " · défilez pour charger la suite") : " · ascendance complète");
+      (reste ? (total >= MAX ? " · cliquez sur › ou ‹ pour déplier" : " · défilez pour charger la suite") : " · arbre complet");
   };
-  const noeud = (q, self, gen) => {
-    const d = document.createElement("div");
-    d.className = "pd"; d.dataset.id = q.i; d.dataset.gen = gen;
+  const bouton = (classe, texte, titre, sens) => {
+    const b = document.createElement("button");
+    b.className = classe; b.type = "button"; b.textContent = texte; b.title = titre; b.dataset.sens = sens;
+    pedObs.observe(b);
+    return b;
+  };
+  const cellule = (q, gen, self) => {
+    const c = document.createElement("span");
+    c.className = "pn-cel";
     const a = document.createElement("a");
     a.className = `pn ${q.x}${self ? " self" : ""}`; a.href = "#" + q.i; a.dataset.id = q.i; a.dataset.gen = gen;
     a.title = gen ? "Voir ses informations et sa génération" : "Afficher les informations de cette personne";
     a.innerHTML = `<span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span>`;
-    d.append(a); total++;
-    if (parentsIds(q.i).length) {
-      const b = document.createElement("button");
-      b.className = "pd-more"; b.type = "button"; b.textContent = "›"; b.title = "Charger les ancêtres";
-      d.append(b); pedObs.observe(b);
+    const plus = document.createElement("button");
+    plus.className = "pd-plus"; plus.type = "button"; plus.textContent = "+";
+    plus.title = `Ajouter un enfant à ${nomTexte(q)}`; plus.setAttribute("aria-label", plus.title);
+    plus.dataset.edit = "ajout-enfant"; plus.dataset.id = q.i;
+    c.append(a, plus);
+    total++;
+    return c;
+  };
+  // sens : "a" = ascendant (parents à droite), "d" = descendant (enfants à gauche), "r" = personne de la fiche
+  const noeud = (q, gen, sens, chemin) => {
+    const d = document.createElement("div");
+    d.className = sens === "d" ? "pdd" : "pd";
+    d.dataset.id = q.i; d.dataset.gen = gen; d.dataset.chemin = chemin;
+    noeuds.set(chemin, d);
+    const cel = cellule(q, gen, sens === "r");
+    const aParents = sens !== "d" && parentsIds(q.i).length, aEnfants = sens !== "a" && enfantsIds(q.i).length;
+    if (sens === "r") {
+      if (aEnfants) d.append(bouton("pd-moins", "‹", "Charger les descendants", "d"));
+      d.append(cel);
+      if (aParents) d.append(bouton("pd-more", "›", "Charger les ancêtres", "a"));
+    } else if (sens === "a") {
+      d.append(cel);
+      if (aParents) d.append(bouton("pd-more", "›", "Charger les ancêtres", "a"));
+    } else {
+      d.append(cel);            // .pdd est en « row-reverse » : les enfants s'affichent à gauche de la carte
+      if (aEnfants) d.append(bouton("pd-moins", "‹", "Charger les descendants", "d"));
     }
     return d;
   };
-  const etendre = d => {
-    const b = d.querySelector(":scope > .pd-more");
+  const etendre = (d, sens) => {
+    const b = d.querySelector(`:scope > .${sens === "a" ? "pd-more" : "pd-moins"}`);
     if (!b) return;
-    pedObs.unobserve(b); b.remove();
-    const anc = document.createElement("div");
-    anc.className = "pd-anc";
-    const gen = (+d.dataset.gen || 0) + 1;
-    for (const x of parentsIds(d.dataset.id)) anc.append(noeud(P.get(x), false, gen));
-    d.append(anc);
+    pedObs.unobserve(b);
+    const gen = +d.dataset.gen || 0;
+    const bloc = document.createElement("div");
+    if (sens === "a") {
+      bloc.className = "pd-anc";
+      for (const x of parentsIds(d.dataset.id)) bloc.append(noeud(P.get(x), gen + 1, "a", `${d.dataset.chemin}/a${x}`));
+    } else {
+      bloc.className = "pd-desc";
+      for (const x of trierParNaissance(enfantsIds(d.dataset.id))) bloc.append(noeud(P.get(x), gen - 1, "d", `${d.dataset.chemin}/d${x}`));
+    }
+    b.replaceWith(bloc);
+    pedMemo.ouverts.add(`${d.dataset.chemin}|${sens}`);
     majInfo();
+    centrer();          // des descendants ajoutés à gauche décalent la personne : on la garde en vue
   };
   pedObs = new IntersectionObserver(entrees => {
-    for (const en of entrees) if (en.isIntersecting && total < MAX) etendre(en.target.parentElement);
+    for (const en of entrees) if (en.isIntersecting && total < MAX) etendre(en.target.parentElement, en.target.dataset.sens);
   }, { root: wrap, rootMargin: "120px 240px 120px 240px" });
-  wrap._etendre = etendre;
-  wrap.replaceChildren(noeud(P.get(id), true, 0));
+  wrap._etendre = (b) => etendre(b.parentElement, b.dataset.sens);
+  wrap.replaceChildren(noeud(P.get(id), 0, "r", ""));
+  // même fiche qu'avant (après une modification) : on redéplie les mêmes branches, dans le même ordre
+  if (memeFiche) for (const cle of [...pedMemo.ouverts]) {
+    const [chemin, sens] = cle.split("|");
+    const d = noeuds.get(chemin);
+    if (d) etendre(d, sens); else pedMemo.ouverts.delete(cle);
+  }
   majInfo();
-  // la personne reste au milieu de la zone tant que l'utilisateur n'a pas fait défiler lui-même
+  wrap.addEventListener("scroll", () => { pedMemo.defilement = [wrap.scrollLeft, wrap.scrollTop]; }, { passive: true });
+  if (memeFiche && pedMemo.defilement) [wrap.scrollLeft, wrap.scrollTop] = pedMemo.defilement;
+  // sinon, la personne reste au milieu de la zone tant que l'utilisateur n'a pas fait défiler lui-même
   for (const ev of ["wheel", "touchstart", "pointerdown"]) wrap.addEventListener(ev, () => { defile = true; }, { once: true, passive: true });
-  const centrer = () => {
+  function centrer() {
     if (defile) return;
     const s = wrap.querySelector(".pn.self");
-    if (s) wrap.scrollTop = s.offsetTop - (wrap.clientHeight - s.offsetHeight) / 2;
-  };
+    if (!s) return;
+    const r = s.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    wrap.scrollTop += r.top - w.top - (wrap.clientHeight - r.height) / 2;
+    wrap.scrollLeft += r.left - w.left - (wrap.clientWidth - r.width) / 2;
+  }
   for (const t of [120, 350, 800]) setTimeout(() => { centrer(); majInfo(); }, t);
 }
 
@@ -240,10 +298,11 @@ function ouvrirPeek(id, gen) {
   if (gen) {
     const racine = P.get(etat.courant);
     if (racine) {
-      const rel = libGeneration(gen, p.x), nomRacine = esc(nomTexte(racine));
+      const n = Math.abs(gen), desc = gen < 0;
+      const rel = desc ? libDescendance(n, p.x) : libGeneration(n, p.x), nomRacine = esc(nomTexte(racine));
       h += rel
-        ? `<p class="gen-rel">${esc(rel.charAt(0).toUpperCase() + rel.slice(1))} de <b>${nomRacine}</b> <span class="gen-n">génération −${gen}</span></p>`
-        : `<p class="gen-rel"><b>${gen}ᵉ génération</b> avant ${nomRacine}</p>`;
+        ? `<p class="gen-rel">${esc(rel.charAt(0).toUpperCase() + rel.slice(1))} de <b>${nomRacine}</b> <span class="gen-n">génération ${desc ? "+" : "−"}${n}</span></p>`
+        : `<p class="gen-rel"><b>${n}ᵉ génération</b> ${desc ? "après" : "avant"} ${nomRacine}</p>`;
     }
   }
   h += `<div class="actions"><a class="btn primary" href="#${id}">Ouvrir sa fiche</a><a class="btn" href="#fresque:${id}">Voir sur la fresque</a></div>` +
@@ -343,10 +402,9 @@ function renderFiche(id) {
   h += `<section class="card"><h3>Famille</h3>${fam}</section>`;
 
   // Ascendance
-  if (aDesAscendants(p)) {
-    h += `<section class="card"><h3>Ascendance<span class="sp pedinfo vide"></span></h3>` +
-      `<div class="pedwrap" id="ped" aria-label="Arbre d’ascendance"></div></section>`;
-  }
+  h += `<section class="card"><h3>Ascendance et descendance<span class="sp pedinfo vide"></span></h3>` +
+    `<div class="ped-legende"><span>‹ descendants</span><span>ancêtres ›</span></div>` +
+    `<div class="pedwrap" id="ped" aria-label="Arbre d’ascendance et de descendance"></div></section>`;
 
   // Événements
   const evs = (p.e || []).filter(e => e.t !== "Inhumation" && e.t !== "Baptême");
@@ -463,8 +521,8 @@ detailEl.addEventListener("click", e => {
   if (pn && !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) {
     e.preventDefault(); ouvrirPeek(pn.dataset.id, pn.dataset.gen !== undefined ? +pn.dataset.gen : undefined); return;
   }
-  const plus = t.closest(".pd-more");
-  if (plus) { plus.closest(".pedwrap")._etendre(plus.parentElement); return; }
+  const deplier = t.closest(".pd-more, .pd-moins");
+  if (deplier) { deplier.closest(".pedwrap")._etendre(deplier); return; }
   const more = t.closest(".more");
   if (more) { const n = more.previousElementSibling; n.classList.toggle("clamp"); more.textContent = n.classList.contains("clamp") ? "Tout afficher" : "Réduire"; return; }
   if (t.dataset?.full) ouvrirPhoto(t.dataset.full, t.alt);

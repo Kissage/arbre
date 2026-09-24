@@ -367,31 +367,45 @@ const Edition = (() => {
       }),
     });
   }
+  /** fid fourni : enfant de cette union. Sinon (bouton « + » de l'arbre) : on choisit l'union dans la fenêtre. */
   function ajouterEnfant(id, fid) {
-    const p = pers(B(), id), f = fid ? fam(B(), fid) : null;
-    const autre = f ? (f.pere === id ? f.mere : f.pere) : "";
-    const pere = p.sexe === "M" ? p : autre ? pers(B(), autre) : null;
-    const nouvelleFid = Modele.nouvelId("F");
+    const p = pers(B(), id), nouvelleFid = Modele.nouvelId("F");
+    const unions = fid ? [fam(B(), fid)] : B().familles.filter(f => f.pere === id || f.mere === id);
+    const conjointDe = f => (f.pere === id ? f.mere : f.pere) || "";
+    const choix = !fid && unions.length > 0;
+    const f0 = unions[0] || null, autre0 = f0 ? conjointDe(f0) : "";
+    const pere = p.sexe === "M" ? p : autre0 ? pers(B(), autre0) : null;
+    const conjoints = unions.map(conjointDe).filter(Boolean);
+    const supp = choix ? `<fieldset><legend>Autre parent</legend><label class="champ">Enfant de ${esc(nomDe(p))} et…` +
+      `<select name="u_fam">${unions.map(f => `<option value="${esc(f.id)}">${esc(conjointDe(f) ? nomId(conjointDe(f)) : "conjoint inconnu")}</option>`).join("")}` +
+      `<option value="">autre parent inconnu</option></select></label></fieldset>` : "";
+    const titreAutre = !choix && autre0 ? " et " + nomId(autre0) : "";
     dialogueLien({
-      titre: `Ajouter un enfant à ${nomDe(p)}${autre ? " et " + nomId(autre) : ""}`,
-      nom: pere?.nom || p.nom || "", exclus: [id, autre].filter(Boolean),
-      controle: x => lienImpossible(id, x, { desc: false }) || (autre ? lienImpossible(autre, x, { desc: false }) : null),
-      operation: (enfantId, nouvelle) => ({
-        message: `Ajoute ${nouvelle ? nomDe(nouvelle) : nomId(enfantId)} comme enfant de ${nomDe(p)}${autre ? " et " + nomId(autre) : ""}`,
-        faire: d => {
-          avecNouvelle(d, nouvelle);
-          const enfant = pers(d, enfantId), parent = pers(d, id);
-          let cible = fid ? fam(d, fid) : null;
-          if (!cible) {
-            cible = { id: nouvelleFid, pere: parent.sexe === "F" ? "" : id, mere: parent.sexe === "F" ? id : "", enfants: [] };
-            d.familles.push(cible);
-          }
-          if ((cible.enfants || []).includes(enfantId)) throw new Error(`${nomDe(enfant)} est déjà leur enfant`);
-          const ailleurs = d.familles.find(x => x !== cible && (x.enfants || []).includes(enfantId) && (x.pere || x.mere));
-          if (ailleurs) throw new Error(`${nomDe(enfant)} a déjà des parents dans l’arbre : modifiez d’abord ses parents depuis sa fiche`);
-          cible.enfants = [...(cible.enfants || []), enfantId];
-        },
-      }),
+      titre: `Ajouter un enfant à ${nomDe(p)}${titreAutre}`,
+      nom: pere?.nom || p.nom || "", exclus: [id, ...conjoints], supp,
+      controle: x => lienImpossible(id, x, { desc: false }) ||
+        conjoints.map(c => lienImpossible(c, x, { desc: false })).find(Boolean) || null,
+      lireSupp: form => (choix ? form.elements.u_fam.value : fid) || null,
+      operation: (enfantId, nouvelle, fidChoisi) => {
+        const autre = fidChoisi ? conjointDe(unions.find(f => f.id === fidChoisi) || {}) : "";
+        return {
+          message: `Ajoute ${nouvelle ? nomDe(nouvelle) : nomId(enfantId)} comme enfant de ${nomDe(p)}${autre ? " et " + nomId(autre) : ""}`,
+          faire: d => {
+            avecNouvelle(d, nouvelle);
+            const enfant = pers(d, enfantId), parent = pers(d, id);
+            let cible = fidChoisi ? fam(d, fidChoisi) : null;
+            if (!cible) {              // autre parent inconnu : famille à un seul parent
+              cible = d.familles.find(x => x.id === nouvelleFid) ||
+                { id: nouvelleFid, pere: parent.sexe === "F" ? "" : id, mere: parent.sexe === "F" ? id : "", enfants: [] };
+              if (!d.familles.includes(cible)) d.familles.push(cible);
+            }
+            if ((cible.enfants || []).includes(enfantId)) throw new Error(`${nomDe(enfant)} est déjà leur enfant`);
+            const ailleurs = d.familles.find(x => x !== cible && (x.enfants || []).includes(enfantId) && (x.pere || x.mere));
+            if (ailleurs) throw new Error(`${nomDe(enfant)} a déjà des parents dans l’arbre : modifiez d’abord ses parents depuis sa fiche`);
+            cible.enfants = [...(cible.enfants || []), enfantId];
+          },
+        };
+      },
     });
   }
   function ajouterFratrie(id) {
