@@ -446,6 +446,7 @@ button, select, input { font: inherit; color: inherit; }
     <button role="tab" id="tab-pers" aria-selected="true">Personnes</button>
     <button role="tab" id="tab-fr" aria-selected="false">Fresque</button>
     <button role="tab" id="tab-st" aria-selected="false">Statistiques</button>
+    <button role="tab" id="tab-ex" aria-selected="false">Export</button>
   </nav>
   <div class="stats" id="stats"></div>
   <span class="sync" id="sync" role="status" aria-live="polite"></span>
@@ -561,16 +562,20 @@ button, select, input { font: inherit; color: inherit; }
   <div class="fr-legend" id="fr-legend"></div>
 </section>
 
+<main class="stpage" id="expage" hidden>
+  <div class="fiche" id="exbody"></div>
+</main>
 <main class="stpage" id="stpage" hidden>
   <div class="fiche" id="stbody"></div>
 </main>
 <div id="lb" role="dialog" aria-label="Photo"></div>
 
-<script src="js/config.js?v=9"></script>
-<script src="js/histoire.js?v=9"></script>
-<script src="js/modele.js?v=9"></script>
-<script src="js/depot.js?v=9"></script>
-<script src="js/interface.js?v=9"></script>
-<script src="js/edition.js?v=9"></script>
+<script src="js/config.js?v=12"></script>
+<script src="js/histoire.js?v=12"></script>
+<script src="js/modele.js?v=12"></script>
+<script src="js/depot.js?v=12"></script>
+<script src="js/interface.js?v=12"></script>
+<script src="js/export.js?v=12"></script>
+<script src="js/edition.js?v=12"></script>
 </body>
 </html>

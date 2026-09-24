@@ -64,9 +64,17 @@ const Depot = (() => {
   async function lireBlob(sha) {
     const c = await ouvrirCache();
     if (c) { const r = await c.match(cleCache(sha)); if (r) return r.arrayBuffer(); }
-    const r = await api(repo(`/git/blobs/${sha}`), { accept: "application/vnd.github.raw+json", brut: true });
     let octets;
-    try { octets = await r.arrayBuffer(); } catch { throw new ErreurApi(0, "Téléchargement interrompu"); }
+    for (let essai = 0; ; essai++) {        // un téléchargement coupé est retenté (3 essais)
+      try {
+        const r = await api(repo(`/git/blobs/${sha}`), { accept: "application/vnd.github.raw+json", brut: true });
+        try { octets = await r.arrayBuffer(); } catch { throw new ErreurApi(0, "Téléchargement interrompu"); }
+        break;
+      } catch (e) {
+        if (e.statut !== 0 || essai >= 2) throw e;
+        await new Promise(res => setTimeout(res, 1000 * (essai + 1)));
+      }
+    }
     if (c) try { await c.put(cleCache(sha), new Response(octets.slice(0))); } catch { /* quota */ }
     return octets;
   }

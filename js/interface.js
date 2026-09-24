@@ -493,11 +493,14 @@ function montrerOnglet(nom) {
   app.hidden = nom !== "personnes";
   $("#fresque").hidden = nom !== "fresque";
   $("#stpage").hidden = nom !== "stats";
+  $("#expage").hidden = nom !== "export";
   $("#tab-pers").setAttribute("aria-selected", String(nom === "personnes"));
   $("#tab-fr").setAttribute("aria-selected", String(nom === "fresque"));
   $("#tab-st").setAttribute("aria-selected", String(nom === "stats"));
+  $("#tab-ex").setAttribute("aria-selected", String(nom === "export"));
   if (nom === "fresque") { document.title = `Fresque — ${D.titre}`; Fresque.montrer(); }
   else if (nom === "stats") { document.title = `Statistiques — ${D.titre}`; Stat.montrer(); }
+  else if (nom === "export") { document.title = `Export — ${D.titre}`; Export.montrer(); }
 }
 function route() {
   if (!tousIds.length) return;          // données pas encore chargées
@@ -506,8 +509,8 @@ function route() {
     const id = h.split(":")[1];
     montrerOnglet("fresque");
     Fresque.choisir(P.has(id) ? id : etat.courant, { centrer: true });
-  } else if (h === "stats") {
-    montrerOnglet("stats");
+  } else if (h === "stats" || h === "export") {
+    montrerOnglet(h);
   } else {
     montrerOnglet("personnes");
     afficher(P.has(h) ? h : (etat.courant || D.racine), { depuisClic: P.has(h) });
@@ -517,6 +520,7 @@ window.addEventListener("hashchange", route);
 $("#tab-pers").addEventListener("click", () => { location.hash = "#" + (etat.courant || D.racine); route(); });
 $("#tab-fr").addEventListener("click", () => { location.hash = "#fresque:" + (etat.courant || D.racine); route(); });
 $("#tab-st").addEventListener("click", () => { location.hash = "#stats"; route(); });
+$("#tab-ex").addEventListener("click", () => { location.hash = "#export"; route(); });
 
 let minuteur;
 $("#q").addEventListener("input", e => { clearTimeout(minuteur); minuteur = setTimeout(() => { etat.q = e.target.value; renderListe(); }, 120); });
@@ -1495,6 +1499,7 @@ function surNouvellesDonnees(B) {
   renderListe();
   Fresque.invalider();
   Stat.invalider();
+  if (typeof Export !== "undefined") Export.invalider();
   if (premierAffichage) { premierAffichage = false; route(); return; }
   if (onglet === "personnes") {
     if (!P.has(etat.courant)) { location.hash = "#" + D.racine; return; }
@@ -1565,12 +1570,7 @@ menu.addEventListener("click", async e => {
     const fait = await Depot.verifierDistant();
     if (!fait) toast("L’arbre est à jour.");
   } else if (action === "gedcom") {
-    const texte = Modele.exporterGedcom(Depot.donnees);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([texte], { type: "text/plain;charset=utf-8" }));
-    a.download = `arbre-${new Date().toISOString().slice(0, 10)}.ged`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    location.hash = "#export";
   } else {
     Edition.menu(action);
   }
