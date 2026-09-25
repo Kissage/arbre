@@ -148,6 +148,23 @@ function fermeture(id, voisins) {   // tous les ascendants (ou descendants) d'un
   return s;
 }
 function aDesAscendants(p) { return parentsIds(p.i).length > 0; }
+/** Informations de la fiche qui ne tiennent pas sur une carte de l'arbre (texte du logo « i »), ou "" s'il n'y en a pas. */
+function infosEnPlus(p) {
+  const n = (k, un, plusieurs) => k ? `${k} ${k > 1 ? plusieurs : un}` : "";
+  const ev = (p.e || []).filter(e => e.t !== "Profession" && e.t !== "Titre").length;
+  return [n(p.nt?.length, "note", "notes"), n(p.s?.length, "source", "sources"), n(p.ph?.length, "photo", "photos"),
+    n(ev, "autre événement", "autres événements")].filter(Boolean).join(" · ");
+}
+/** Métiers, professions et titres d'une personne, sans doublons (dans l'ordre chronologique des événements). */
+function metiers(p) {
+  const vus = new Set(), res = [];
+  for (const e of p.e || []) {
+    if (e.t !== "Profession" && e.t !== "Titre") continue;
+    const v = (e.v || "").replace(/^[•·\-–— ]+/, "").trim();
+    if (v && !vus.has(fold(v))) { vus.add(fold(v)); res.push(v); }
+  }
+  return res;
+}
 // Mot désignant une génération d'ancêtre (1 = parent, 2 = grand-parent…) ; null au-delà, faute de nom d'usage.
 function libGeneration(g, sexe) {
   const f = sexe === "F";
@@ -195,7 +212,10 @@ function monterAscendance(wrap, id) {
     const a = document.createElement("a");
     a.className = `pn ${q.x}${classe}`; a.href = "#" + q.i; a.dataset.id = q.i;
     Object.assign(a.dataset, attrs);
-    a.innerHTML = `${q.av ? avatar(q, "xs") : ""}<span class="t"><span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span></span>`;
+    const m = metiers(q), plus = infosEnPlus(q);
+    a.innerHTML = `${q.av ? avatar(q, "xs") : ""}<span class="t"><span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span>` +
+      (m.length ? `<span class="m" title="${esc(m.join(" · "))}">${esc(m.join(" · "))}</span>` : "") + `</span>` +
+      (plus ? `<span class="info" title="${esc(plus)}" aria-label="${esc(plus)}">i</span>` : "");
     return a;
   };
   // conjoint(s) d'une personne (familles où elle est parent, avec un autre parent connu)
