@@ -173,6 +173,18 @@ button, select, input { font: inherit; color: inherit; }
 .pd-desc > .pdd:first-child::after { top: 50%; }
 .pd-desc > .pdd:last-child::after { bottom: 50%; }
 .pd-desc > .pdd:only-child::after { display: none; }
+.ped-plein-btn { margin-left: 8px; padding: 3px 10px; font-size: 12.5px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+/* plein écran : la carte de l'arbre couvre la fenêtre ; le panneau d'aperçu garde sa place à droite */
+.card.ped-carte.plein { position: fixed; inset: 0; z-index: 45; margin: 0; border: 0; border-radius: 0;
+  display: flex; flex-direction: column; box-shadow: none; }
+.card.ped-carte.plein .pedwrap { flex: 1; max-height: none; min-height: 0; }
+.app.has-peek .card.ped-carte.plein { right: 350px; }
+body.ped-plein-actif .peek { position: fixed; top: 0; right: 0; bottom: 0; width: 350px; z-index: 50;
+  box-shadow: -8px 0 24px rgba(0,0,0,.14); }
+@media (max-width: 860px) {
+  .app.has-peek .card.ped-carte.plein { right: 0; }
+  body.ped-plein-actif .peek { width: auto; left: 0; }
+}
 .ped-legende { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 0 4px 6px; }
 .pn.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .pedinfo { font-size: 12.5px; }
@@ -583,12 +595,12 @@ button, select, input { font: inherit; color: inherit; }
 </main>
 <div id="lb" role="dialog" aria-label="Photo"></div>
 
-<script src="js/config.js?v=16"></script>
-<script src="js/histoire.js?v=16"></script>
-<script src="js/modele.js?v=16"></script>
-<script src="js/depot.js?v=16"></script>
-<script src="js/interface.js?v=16"></script>
-<script src="js/export.js?v=16"></script>
-<script src="js/edition.js?v=16"></script>
+<script src="js/config.js?v=17"></script>
+<script src="js/histoire.js?v=17"></script>
+<script src="js/modele.js?v=17"></script>
+<script src="js/depot.js?v=17"></script>
+<script src="js/interface.js?v=17"></script>
+<script src="js/export.js?v=17"></script>
+<script src="js/edition.js?v=17"></script>
 </body>
 </html>

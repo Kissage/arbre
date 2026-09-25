@@ -459,7 +459,8 @@ function renderFiche(id) {
   h += `<section class="card"><h3>Famille</h3>${fam}</section>`;
 
   // Ascendance
-  h += `<section class="card"><h3>Ascendance et descendance<span class="sp pedinfo vide"></span></h3>` +
+  h += `<section class="card ped-carte${pedPlein ? " plein" : ""}"><h3>Ascendance et descendance<span class="sp pedinfo vide"></span>` +
+    `<button class="btn ped-plein-btn" type="button" data-ped-plein>${pedPlein ? "✕ Quitter le plein écran" : "⛶ Plein écran"}</button></h3>` +
     `<div class="ped-legende"><span>‹ descendants</span><span>ancêtres ›</span></div>` +
     `<div class="pedwrap" id="ped" aria-label="Arbre d’ascendance et de descendance"></div></section>`;
 
@@ -528,7 +529,31 @@ function afficher(id, { depuisClic = false } = {}) {
 }
 
 let onglet = "personnes";
+/* ---------- arbre en plein écran (le panneau d'aperçu reste disponible à droite) ---------- */
+let pedPlein = false, pleinNatif = false;
+function basculerPlein(actif) {
+  pedPlein = actif;
+  document.body.classList.toggle("ped-plein-actif", actif);
+  const carte = detailEl.querySelector(".ped-carte");
+  if (carte) {
+    carte.classList.toggle("plein", actif);
+    carte.querySelector("[data-ped-plein]").textContent = actif ? "✕ Quitter le plein écran" : "⛶ Plein écran";
+  }
+  // vrai plein écran du navigateur quand il est disponible (sinon, la carte occupe simplement toute la fenêtre)
+  if (actif && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().then(() => { pleinNatif = true; }).catch(() => {});
+  } else if (!actif && pleinNatif && document.fullscreenElement) {
+    pleinNatif = false;
+    document.exitFullscreen().catch(() => {});
+  }
+}
+// Échap (ou le navigateur) a quitté le plein écran : l'arbre reprend sa place dans la fiche
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && pleinNatif) { pleinNatif = false; if (pedPlein) basculerPlein(false); }
+});
+
 function montrerOnglet(nom) {
+  if (nom !== "personnes" && pedPlein) basculerPlein(false);
   onglet = nom;
   app.hidden = nom !== "personnes";
   $("#fresque").hidden = nom !== "fresque";
@@ -587,6 +612,7 @@ detailEl.addEventListener("click", e => {
     const w = plus.closest(".pedwrap").getBoundingClientRect(), r = plus.closest(".pn-cel").getBoundingClientRect();
     pedMemo.ancre = { chemin: plus.closest(".pd, .pdd").dataset.chemin, x: r.left - w.left, y: r.top - w.top };
   }
+  if (t.closest("[data-ped-plein]")) { basculerPlein(!pedPlein); return; }
   const deplier = t.closest(".pd-more, .pd-moins");
   if (deplier) { deplier.closest(".pedwrap")._etendre(deplier); return; }
   const more = t.closest(".more");
@@ -602,7 +628,11 @@ function ouvrirPhoto(chemin, legende) {
 }
 $("#lb").addEventListener("click", () => $("#lb").classList.remove("on"));
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { if ($("#lb").classList.contains("on")) $("#lb").classList.remove("on"); else if (!peekEl.hidden) fermerPeek(); }
+  if (e.key === "Escape") {
+    if ($("#lb").classList.contains("on")) $("#lb").classList.remove("on");
+    else if (!peekEl.hidden) fermerPeek();
+    else if (pedPlein) basculerPlein(false);
+  }
   else if (e.key === "/" && document.activeElement !== $("#q") && !/input|select|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); $("#q").focus(); }
 });
 
