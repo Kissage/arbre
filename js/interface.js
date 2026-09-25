@@ -191,23 +191,43 @@ function monterAscendance(wrap, id) {
     pedObs.observe(b);
     return b;
   };
-  const cellule = (q, gen, self) => {
+  const carte = (q, classe, attrs = {}) => {
+    const a = document.createElement("a");
+    a.className = `pn ${q.x}${classe}`; a.href = "#" + q.i; a.dataset.id = q.i;
+    Object.assign(a.dataset, attrs);
+    a.innerHTML = `${q.av ? avatar(q, "xs") : ""}<span class="t"><span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span></span>`;
+    return a;
+  };
+  // conjoint(s) d'une personne (familles où elle est parent, avec un autre parent connu)
+  const conjointsDe = id => [...new Set((P.get(id)?.fs || []).map(f => F[f]).filter(Boolean)
+    .map(f => f.h === id ? f.w : f.h).filter(x => x && P.has(x)))];
+  const cellule = (q, gen, self, avecConjoints) => {
     const c = document.createElement("span");
     c.className = "pn-cel";
-    const a = document.createElement("a");
-    a.className = `pn ${q.x}${self ? " self" : ""}`; a.href = "#" + q.i; a.dataset.id = q.i; a.dataset.gen = gen;
+    const pile = document.createElement("span");
+    pile.className = "pn-pile";
+    const a = carte(q, self ? " self" : "", { gen });
     a.title = gen ? "Voir ses informations et sa génération" : "Afficher les informations de cette personne";
-    a.innerHTML = `${q.av ? avatar(q, "xs") : ""}<span class="t"><span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span></span>`;
-    // « + » à gauche : ajouter un enfant (côté descendance) ; à droite : ajouter un parent (côté ascendance)
-    const plus = (classe, action, titre) => {
+    pile.append(a);
+    // côté personne de la fiche et descendants : le conjoint s'affiche sous la carte (côté ancêtres, c'est l'autre parent)
+    if (avecConjoints) for (const x of conjointsDe(q.i)) {
+      const cj = carte(P.get(x), " conj");
+      cj.title = `Conjoint(e) de ${nomTexte(q)}`;
+      cj.insertAdjacentHTML("afterbegin", '<span class="conj-signe" aria-label="uni(e) à">∞</span>');
+      pile.append(cj);
+      total++;
+    }
+    // « + » à gauche : ajouter un enfant (côté descendance) ; à droite : un parent (côté ascendance) ; « ∞ » : une union
+    const plus = (classe, action, titre, texte = "+") => {
       const b = document.createElement("button");
-      b.className = `pd-plus ${classe}`; b.type = "button"; b.textContent = "+";
+      b.className = `pd-plus ${classe}`; b.type = "button"; b.textContent = texte;
       b.title = titre; b.setAttribute("aria-label", titre);
       b.dataset.edit = action; b.dataset.id = q.i;
       return b;
     };
-    c.append(plus("enfant", "ajout-enfant", `Ajouter un enfant à ${nomTexte(q)}`), a);
+    c.append(plus("enfant", "ajout-enfant", `Ajouter un enfant à ${nomTexte(q)}`), pile);
     if (parentsIds(q.i).length < 2) c.append(plus("parent", "ajout-parent", `Ajouter un parent à ${nomTexte(q)}`));
+    c.append(plus("union", "ajout-union", `Ajouter une union (conjoint) à ${nomTexte(q)}`, "∞"));
     total++;
     return c;
   };
@@ -217,7 +237,7 @@ function monterAscendance(wrap, id) {
     d.className = sens === "d" ? "pdd" : "pd";
     d.dataset.id = q.i; d.dataset.gen = gen; d.dataset.chemin = chemin;
     noeuds.set(chemin, d);
-    const cel = cellule(q, gen, sens === "r");
+    const cel = cellule(q, gen, sens === "r", sens !== "a");
     const aParents = sens !== "d" && parentsIds(q.i).length, aEnfants = sens !== "a" && enfantsIds(q.i).length;
     if (sens === "r") {
       if (aEnfants) d.append(bouton("pd-moins", "‹", "Charger les descendants", "d"));
