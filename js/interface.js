@@ -197,7 +197,7 @@ function monterAscendance(wrap, id) {
     const a = document.createElement("a");
     a.className = `pn ${q.x}${self ? " self" : ""}`; a.href = "#" + q.i; a.dataset.id = q.i; a.dataset.gen = gen;
     a.title = gen ? "Voir ses informations et sa génération" : "Afficher les informations de cette personne";
-    a.innerHTML = `<span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span>`;
+    a.innerHTML = `${q.av ? avatar(q, "xs") : ""}<span class="t"><span class="n">${nomHtml(q)}</span><span class="s">${esc(vie(q))}</span></span>`;
     // « + » à gauche : ajouter un enfant (côté descendance) ; à droite : ajouter un parent (côté ascendance)
     const plus = (classe, action, titre) => {
       const b = document.createElement("button");

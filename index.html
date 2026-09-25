@@ -212,8 +212,11 @@ button, select, input { font: inherit; color: inherit; }
 .pd-anc > .pd:first-child::after { top: 50%; }
 .pd-anc > .pd:last-child::after { bottom: 50%; }
 .pd-anc > .pd:only-child::after { display: none; }
-.pn { flex: none; width: 168px; padding: 5px 9px; border: 1px solid var(--line); border-left-width: 3px;
-  border-radius: 8px; text-decoration: none; color: inherit; background: var(--panel); line-height: 1.25; }
+.pn { flex: none; width: 200px; padding: 5px 9px; border: 1px solid var(--line); border-left-width: 3px;
+  border-radius: 8px; text-decoration: none; color: inherit; background: var(--panel); line-height: 1.25;
+  display: flex; align-items: center; gap: 7px; }
+.pn .t { min-width: 0; flex: 1; }
+.pn .av.xs { width: 28px; height: 28px; }
 .pn:hover { border-color: var(--accent); background: var(--hover); }
 .pn.M { border-left-color: var(--m); } .pn.F { border-left-color: var(--f); }
 .pn.U { border-left-color: var(--u); }
@@ -570,12 +573,12 @@ button, select, input { font: inherit; color: inherit; }
 </main>
 <div id="lb" role="dialog" aria-label="Photo"></div>
 
-<script src="js/config.js?v=12"></script>
-<script src="js/histoire.js?v=12"></script>
-<script src="js/modele.js?v=12"></script>
-<script src="js/depot.js?v=12"></script>
-<script src="js/interface.js?v=12"></script>
-<script src="js/export.js?v=12"></script>
-<script src="js/edition.js?v=12"></script>
+<script src="js/config.js?v=13"></script>
+<script src="js/histoire.js?v=13"></script>
+<script src="js/modele.js?v=13"></script>
+<script src="js/depot.js?v=13"></script>
+<script src="js/interface.js?v=13"></script>
+<script src="js/export.js?v=13"></script>
+<script src="js/edition.js?v=13"></script>
 </body>
 </html>
